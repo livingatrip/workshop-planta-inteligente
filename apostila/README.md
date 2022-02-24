@@ -59,11 +59,11 @@ Nesse laboratório controlaremos o acionamento de um LED utilizando o NodeMCU. P
 
 ## Partes
 
-* 1x Cabo MicroSD
+* 1x Cabo Micro USB
 * 1x NodeMCU
 * 1x Protoboard
 * Arduino IDE instalado ([Link para download](https://www.arduino.cc/en/Main/Software))
-* Driver CP2102 NodeMCU ([Link para download](http://www.silabs.com/products/mcu/pages/usbtouartbridgevcpdrivers.aspx))
+* Driver CP2102 NodeMCU ([Link para download - aba downloads](https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers))
 
 ## Configurações do software Arduino IDE
 
@@ -93,7 +93,7 @@ O último passo é programar o NodeMCU com IDE Arduino, e vamos fazer isso utili
 
 ## Eletrônica
 
-         ![image alt text](image_6.png)
+![image alt text](image_6.png)
 
 ## Código
 
@@ -157,7 +157,7 @@ Iniciaremos a partir deste laboratório a montagem do circuito de medição dos 
 * 1x Protoboard
 * 1x Sensor de Luminosidade (LDR)
 * 1x Resistor 10kΩ
-* Cabos para ligações
+* Cabos para ligações (jumpers)
 
 ## Eletrônica
 
@@ -231,7 +231,7 @@ O sensor de umidade de solo pode ser utilizado como analógico ou digital. Quand
 * 1x NodeMCU
 * 1x Protoboard
 * Sensor de umidade (Higrômetro)
-* Cabos para ligações
+* Cabos para ligações (jumpers)
 
 ## Eletrônica
 
@@ -273,8 +273,8 @@ O sensor de temperatura e umidade **DHT11** permite realizarmos leituras de temp
 * 1x NodeMCU
 * 1x Protoboard
 * Sensor de temperatura e umidade (DHT11)
-* Cabos para ligações
-* Bibliotecas do sensor DHT11 ([Link para download](https://learn.adafruit.com/dht/downloads))
+* Cabos para ligações (jumpers)
+* Bibliotecas do sensor DHT11 ([Link para download](https://learn.adafruit.com/dht/downloads)) ou, pelo próprio Arduino IDE, utilize o menu sketch > incluir biblioteca > gerenciar bibliotecas para buscar pela biblioteca DHT sensor library by Adafruit.
 
 ## Eletrônica
 
@@ -526,7 +526,7 @@ void updateThingSpeak() {
 
   // Especifica servidor, porta do processo e URL de envio de dados e inicia
   // um canal de comunicação com o servidor.
-  client.begin(TS_HOST, HTTP_PORT, url);
+  client.begin(wifiClient, TS_HOST, HTTP_PORT, url);
 
   // Faz requisição e guarda código de retorno.
   int codigoHTTP = client.GET();
@@ -614,7 +614,7 @@ void loop() {
   // Se a WiFi está devidamente configurada e conectada.
   if (wifi.run() == WL_CONNECTED) {
     // Se a umidade do solo estiver baixa (ou seja, o solo está seco).
-    if (umid_solo == 0) {
+    if (umid_solo == 1) {
       // Envia alerta para IFTTT e espera um período curto de tempo
       alertaIFTTT();
 
@@ -627,20 +627,23 @@ void loop() {
 void alertaIFTTT() {
   HTTPClient client;
 
-  // Constrói URL para enviar dados ao IFTTT.
-  String url = String(IFTTT_URL) + IFTTT_API_KEY;
+  // Constroi URL para enviar dados ao IFTTT.
+  String url = String(IFTTT_URL) + IFTTT_API_KEY +
+    "?value1=" + temp +
+    "&value2=" + umidAr +
+    "&value3=" + lumin;;
 
   // Especifica servidor, porta do processo e URL de envio de dados e inicia
-  // um canal de comunicação com o servidor.
-  client.begin(IFTTT_HOST, HTTP_PORT, url);
+  // um canal de comunicacao com o servidor.
+  client.begin(wifiClient, IFTTT_HOST, HTTP_PORT, url);
 
-  // Faz requisição e guarda código de retorno.
+  // Faz requisicao e guarda codigo de retorno.
   int codigoHTTP = client.GET();
 
-  // Fecha o canal de comunicação com o servidor.
+  // Fecha o canal de comunicacao com o servidor.
   client.end();
 
-  // Mostra código de retorno (se foi um sucesso ou fracasso, por exemplo).
+  // Mostra codigo de retorno (se foi um sucesso ou fracasso, por exemplo).
   Serial.println(String("IFTTT retornou HTTP CODE ") + codigoHTTP);
 }
 ```
@@ -653,6 +656,9 @@ A seguir temos o código completo com algumas pequenas diferenças, incluindo to
 #include <DHT.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFiMulti.h>
+#include <WiFiClient.h>
+
+WiFiClient wifiClient;
 
 #define DHTTYPE DHT11 // Modelo do sensor (DHT11).
 #define UMIDPIN D1    // Pino do sensor umidade de solo.
@@ -721,15 +727,15 @@ void loop() {
     delay(500);
 
     // Se a umidade do solo estiver baixa (ou seja, o solo esta seco).
-    if (umidSolo == 0) {
+    if (umidSolo == 1) {
       // Envia alerta para IFTTT e espera um periodo curto de tempo
       alertaIFTTT();
       delay(300);
     }
   }
 
-  // Espera 3seg para executar o proximo ciclo.
-  delay(3000);
+  // Espera 10 segundos para executar o proximo ciclo.
+  delay(10000);
 }
 
 // Le umidade do solo do sensor conectado ao pino UMIDPIN e atualiza a variavel
@@ -779,11 +785,14 @@ void alertaIFTTT() {
   HTTPClient client;
 
   // Constroi URL para enviar dados ao IFTTT.
-  String url = String(IFTTT_URL) + IFTTT_API_KEY;
+  String url = String(IFTTT_URL) + IFTTT_API_KEY +
+    "?value1=" + temp +
+    "&value2=" + umidAr +
+    "&value3=" + lumin;;
 
   // Especifica servidor, porta do processo e URL de envio de dados e inicia
   // um canal de comunicacao com o servidor.
-  client.begin(IFTTT_HOST, HTTP_PORT, url);
+  client.begin(wifiClient, IFTTT_HOST, HTTP_PORT, url);
 
   // Faz requisicao e guarda codigo de retorno.
   int codigoHTTP = client.GET();
@@ -808,7 +817,7 @@ void atualizaThingSpeak() {
 
   // Especifica servidor, porta do processo e URL de envio de dados e inicia
   // um canal de comunicacao com o servidor.
-  client.begin(TS_HOST, HTTP_PORT, url);
+  client.begin(wifiClient, TS_HOST, HTTP_PORT, url);
 
   // Faz requisicao e guarda codigo de retorno.
   int codigoHTTP = client.GET();
@@ -818,6 +827,6 @@ void atualizaThingSpeak() {
   client.end();
 
   // Mostra codigo de retorno (se foi um sucesso ou fracasso, por exemplo).
-  Serial.println(String("ThingSpeak retornou HTTP CODE ")
+  Serial.println(String("ThingSpeak retornou HTTP CODE ") + codigoHTTP);
 }
 ```
